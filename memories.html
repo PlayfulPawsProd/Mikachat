@@ -14,82 +14,69 @@
             line-height: 1.6;
         }
         h1 {
-            color: #fce4ec;
-            text-align: center;
-            text-shadow: 0 0 5px #d81b60;
-            border-bottom: 2px solid #f06292;
-            padding-bottom: 10px;
-            margin-bottom: 30px;
+            color: #fce4ec; text-align: center; text-shadow: 0 0 5px #d81b60;
+            border-bottom: 2px solid #f06292; padding-bottom: 10px; margin-bottom: 30px;
         }
-        #memories-list {
-            list-style: none;
-            padding: 0;
-        }
+        #memories-list { list-style: none; padding: 0; }
         .memory-item {
-            background-color: rgba(240, 98, 146, 0.1);
-            border: 1px solid #f06292;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
+            background-color: rgba(240, 98, 146, 0.1); border: 1px solid #f06292;
+            border-radius: 8px; padding: 15px; margin-bottom: 15px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start; /* Align items to top */
+            display: flex; flex-direction: column; /* Stack text and buttons */
         }
         .memory-text {
-            flex-grow: 1;
-            margin-right: 15px; /* Space before delete button */
-            /* Process basic formatting like in chat */
-            white-space: pre-wrap; /* Preserve line breaks from memory */
-            word-wrap: break-word;
+            flex-grow: 1; margin-bottom: 10px; /* Space before buttons */
+            white-space: pre-wrap; word-wrap: break-word;
         }
-        .memory-text strong { color: #fce4ec; } /* Slightly brighter for emphasis */
-        .memory-text em { color: #ffc1e3; font-style: italic; } /* Lighter italic */
+        .memory-text strong { color: #fce4ec; }
+        .memory-text em { color: #ffc1e3; font-style: italic; }
         .memory-timestamp {
-            font-size: 0.8em;
-            color: #aaa;
-            margin-top: 8px; /* Add space above timestamp */
-            display: block; /* Make it take its own line */
-             text-align: right;
+            font-size: 0.8em; color: #aaa; margin-top: 8px;
+            display: block; text-align: right;
         }
-        .delete-memory-button {
-            background-color: #ff8a80;
-            color: #1a0d13;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: bold;
+        .memory-buttons {
+            display: flex; justify-content: flex-end; /* Align buttons to the right */
+            align-items: center; gap: 10px; /* Space between buttons */
+            margin-top: 5px; /* Space above buttons */
+        }
+        .memory-button { /* Base style for memory buttons */
+            border: none; border-radius: 5px; padding: 5px 10px;
+            cursor: pointer; font-size: 0.9em; font-weight: bold;
             transition: background-color 0.2s, transform 0.1s;
-            flex-shrink: 0; /* Prevent button from shrinking */
         }
-        .delete-memory-button:hover {
-            background-color: #ff5252;
-            transform: scale(1.05);
+        .memory-button:hover { transform: scale(1.05); }
+        .memory-button:active { transform: scale(0.98); }
+        .memory-button:disabled { cursor: not-allowed; opacity: 0.6; transform: none; }
+
+        .delete-memory-button { background-color: #ff8a80; color: #1a0d13; }
+        .delete-memory-button:hover { background-color: #ff5252; }
+
+        .summarize-memory-button { background-color: #80cbc4; color: #1a0d13; } /* Teal button */
+        .summarize-memory-button:hover { background-color: #4db6ac; }
+        .summarize-memory-button.done { background-color: #a5d6a7; color: #1a0d13;} /* Green when done */
+        .summarize-memory-button.done:hover { background-color: #a5d6a7; transform: none; } /* No hover effect when done */
+
+
+        .summarize-info {
+            font-size: 0.75em; color: #aaa; margin-left: 5px; font-style: italic;
         }
+        .memory-status { /* For showing errors or loading states */
+             font-size: 0.8em; color: #ffcc80; /* Orange for loading/status */
+             margin-right: auto; /* Push buttons to the right */
+             font-style: italic;
+        }
+        .memory-error { color: #ff8a80; font-weight: bold; } /* Red for errors */
+
         .navigation-button {
-             display: block; /* Make it block level */
-             width: max-content; /* Fit content width */
-             margin: 30px auto 10px auto; /* Center align */
-             padding: 10px 25px;
-             font-size: 1em; font-weight: bold; border-radius: 20px;
+             display: block; width: max-content; margin: 30px auto 10px auto;
+             padding: 10px 25px; font-size: 1em; font-weight: bold; border-radius: 20px;
              cursor: pointer; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
              transition: transform 0.2s ease, box-shadow 0.2s ease; border: none;
              color: white; background: linear-gradient(45deg, #d81b60, #f06292);
-             text-decoration: none;
-             text-align: center;
+             text-decoration: none; text-align: center;
         }
-        .navigation-button:hover {
-             transform: scale(1.05);
-             box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5);
-        }
-        .no-memories {
-            text-align: center;
-            color: #aaa;
-            font-style: italic;
-            margin-top: 40px;
-        }
+        .navigation-button:hover { transform: scale(1.05); box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5); }
+        .no-memories { text-align: center; color: #aaa; font-style: italic; margin-top: 40px; }
     </style>
 </head>
 <body>
@@ -106,13 +93,20 @@
 
     <a href="index.html" class="navigation-button">Back to Chatting with Mika ♡</a>
 
+    <!-- Include the API script *first* so functions are available -->
+    <script src="api.js"></script>
     <script>
         const memoriesList = document.getElementById('memories-list');
         const noMemoriesMessage = document.getElementById('no-memories-message');
-        const MEMORY_STORAGE_KEY = 'mikaReal_memories'; // Make sure this matches index.html
+        const MEMORY_STORAGE_KEY = 'mikaReal_memories';
+        const APIKEY_STORAGE_KEY = 'geminiApiKey_mikaReal'; // Need this key
+        const USERNAME_STORAGE_KEY = 'mikaReal_userName'; // Need this key too!
+
+        let allMemories = []; // Local cache of memories
+        let currentApiKey = null; // Cache API key
+        let currentUserName = "Master"; // Cache User Name
 
         // --- Utility to sanitize and format memory text ---
-        // (Similar to chat formatting but applied here)
         function formatMemoryText(rawText) {
              const temp = document.createElement('div');
              temp.textContent = rawText; // Basic sanitization
@@ -125,52 +119,119 @@
              return formatted;
         }
 
+        // --- Load User Info (API Key, Name) ---
+        function loadUserInfo() {
+            try {
+                currentApiKey = JSON.parse(localStorage.getItem(APIKEY_STORAGE_KEY));
+                currentUserName = JSON.parse(localStorage.getItem(USERNAME_STORAGE_KEY)) || "Master";
+            } catch (e) {
+                console.error("Failed to load user info from localStorage:", e);
+                currentApiKey = null; // Ensure it's null if loading fails
+                currentUserName = "Master";
+            }
+        }
 
         // --- Load and Display Memories ---
         function loadAndDisplayMemories() {
             memoriesList.innerHTML = ''; // Clear list first
-            let allMemories = [];
             try {
                 const stored = localStorage.getItem(MEMORY_STORAGE_KEY);
                 allMemories = stored ? JSON.parse(stored) : [];
-                if (!Array.isArray(allMemories)) allMemories = []; // Ensure it's an array
+                if (!Array.isArray(allMemories)) allMemories = [];
             } catch (e) {
                 console.error("Failed to load or parse memories:", e);
                 allMemories = [];
-                localStorage.removeItem(MEMORY_STORAGE_KEY); // Clear corrupted data
+                localStorage.removeItem(MEMORY_STORAGE_KEY);
             }
 
             if (allMemories.length === 0) {
                 noMemoriesMessage.style.display = 'block';
             } else {
                 noMemoriesMessage.style.display = 'none';
-                // Display newest first
                 allMemories.slice().reverse().forEach(memory => {
+                    if (typeof memory !== 'object' || memory === null || !memory.id || !memory.text) {
+                        console.warn("Skipping invalid memory object:", memory);
+                        return; // Skip malformed memories
+                    }
+                    // Ensure 'alreadyPurrfect' exists (defaults to false for old memories)
+                    memory.alreadyPurrfect = memory.alreadyPurrfect === true;
+
                     const li = document.createElement('li');
                     li.className = 'memory-item';
-                    li.dataset.memoryId = memory.id; // Store ID for deletion
+                    li.dataset.memoryId = memory.id;
 
+                    // Memory Text Area
                     const textDiv = document.createElement('div');
                     textDiv.className = 'memory-text';
-                    // Apply basic formatting to the displayed text
-                    textDiv.innerHTML = formatMemoryText(memory.text);
+                    textDiv.innerHTML = formatMemoryText(memory.text); // Display formatted text
 
-                     const timestampSpan = document.createElement('span');
-                     timestampSpan.className = 'memory-timestamp';
-                     timestampSpan.textContent = `Remembered: ${memory.timestamp || new Date(memory.id).toLocaleString()}`; // Use stored timestamp or derive from ID
-                     textDiv.appendChild(timestampSpan); // Add timestamp below text
+                    const timestampSpan = document.createElement('span');
+                    timestampSpan.className = 'memory-timestamp';
+                    timestampSpan.textContent = `Remembered: ${memory.timestamp || new Date(memory.id).toLocaleString()}`;
+                    textDiv.appendChild(timestampSpan);
+
+                    li.appendChild(textDiv);
+
+                    // Buttons Area
+                    const buttonsDiv = document.createElement('div');
+                    buttonsDiv.className = 'memory-buttons';
+
+                     // Status/Error Message Area (initially hidden)
+                     const statusSpan = document.createElement('span');
+                     statusSpan.className = 'memory-status';
+                     statusSpan.style.display = 'none'; // Hidden by default
+                     buttonsDiv.appendChild(statusSpan);
 
 
+                    // Summarize Button Logic
+                    const summarizeButton = document.createElement('button');
+                    summarizeButton.className = 'memory-button summarize-memory-button';
+                    summarizeButton.dataset.memoryId = memory.id; // Link button to memory ID
+
+                    const summarizeInfo = document.createElement('span');
+                    summarizeInfo.className = 'summarize-info';
+                    summarizeInfo.textContent = ' (Uses API)';
+
+                    if (memory.alreadyPurrfect) {
+                        summarizeButton.textContent = 'Already Purrfect! ♡';
+                        summarizeButton.disabled = true;
+                        summarizeButton.classList.add('done'); // Style as done
+                        summarizeInfo.textContent = ''; // No need for info if already done
+                    } else if (!currentApiKey) {
+                         summarizeButton.textContent = 'Summarize ♡';
+                         summarizeButton.disabled = true; // Disable if no API key
+                         summarizeInfo.textContent = ' (API Key Missing!)';
+                    } else {
+                         summarizeButton.textContent = 'Summarize ♡';
+                         summarizeButton.onclick = () => summarizeMemory(memory.id, summarizeButton, statusSpan); // Pass button & status span
+                    }
+
+                    summarizeButton.appendChild(summarizeInfo); // Add info text inside button
+                    buttonsDiv.appendChild(summarizeButton);
+
+
+                    // Delete Button
                     const deleteButton = document.createElement('button');
-                    deleteButton.className = 'delete-memory-button';
+                    deleteButton.className = 'memory-button delete-memory-button';
                     deleteButton.textContent = 'Forget';
                     deleteButton.title = 'Make Mika forget this~?';
                     deleteButton.onclick = () => deleteMemory(memory.id);
+                    buttonsDiv.appendChild(deleteButton);
 
-                    li.appendChild(textDiv);
-                    li.appendChild(deleteButton);
+
+                    li.appendChild(buttonsDiv); // Add buttons container to list item
                     memoriesList.appendChild(li);
                 });
+            }
+        }
+
+        // --- Save Memories (Helper) ---
+        function saveMemories() {
+            try {
+                localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(allMemories));
+            } catch (e) {
+                console.error("Failed to save memories:", e);
+                alert("Mrow! Couldn't save the changes, Master! My memory is fuzzy!");
             }
         }
 
@@ -179,34 +240,104 @@
             if (!confirm("Master! Are you sure you want me to forget this?!")) {
                 return;
             }
-
-            let allMemories = [];
-            try {
-                const stored = localStorage.getItem(MEMORY_STORAGE_KEY);
-                allMemories = stored ? JSON.parse(stored) : [];
-                 if (!Array.isArray(allMemories)) allMemories = [];
-            } catch (e) {
-                console.error("Failed to load memories for deletion:", e);
-                return; // Don't proceed if loading failed
-            }
-
-            // Filter out the memory with the matching ID
-            const updatedMemories = allMemories.filter(memory => memory.id !== memoryId);
-
-            // Save the updated list back to localStorage
-            try {
-                localStorage.setItem(MEMORY_STORAGE_KEY, JSON.stringify(updatedMemories));
+            // Find index first to ensure correct deletion if IDs aren't perfectly sequential/unique (though timestamp IDs should be)
+            const memoryIndex = allMemories.findIndex(memory => memory.id === memoryId);
+            if (memoryIndex > -1) {
+                allMemories.splice(memoryIndex, 1); // Remove the memory from our local cache
+                saveMemories(); // Save the updated array
                 console.log(`Deleted memory ID: ${memoryId}`);
-                // Reload the displayed list
-                loadAndDisplayMemories();
-            } catch (e) {
-                console.error("Failed to save memories after deletion:", e);
-                alert("Mrow! Couldn't save the changes, Master! My memory is fuzzy!");
+                loadAndDisplayMemories(); // Reload the displayed list
+            } else {
+                 console.error(`Memory ID ${memoryId} not found for deletion.`);
             }
         }
 
+        // --- Summarize Memory ---
+        async function summarizeMemory(memoryId, buttonElement, statusElement) {
+            const memoryIndex = allMemories.findIndex(memory => memory.id === memoryId);
+            if (memoryIndex === -1) {
+                console.error(`Memory ID ${memoryId} not found for summarization.`);
+                statusElement.textContent = 'Error: Memory not found!';
+                statusElement.className = 'memory-status memory-error';
+                statusElement.style.display = 'inline';
+                return;
+            }
+
+            const memory = allMemories[memoryIndex];
+
+            // Double check it's not already summarized and we have an API key
+            if (memory.alreadyPurrfect || !currentApiKey) {
+                console.warn("Attempted to summarize already done or without API key.");
+                buttonElement.disabled = true; // Ensure it's disabled
+                return;
+            }
+
+            // Update UI to show loading state
+            buttonElement.disabled = true;
+            buttonElement.textContent = 'Summarizing...';
+            statusElement.textContent = 'Asking Mika to think...';
+            statusElement.className = 'memory-status'; // Reset potential error class
+            statusElement.style.display = 'inline';
+
+
+            try {
+                // Call the *new* API function (defined in api.js)
+                // Master's name is needed for the persona context!
+                const summary = await askMikaToSummarize(memory.text, currentApiKey, currentUserName);
+
+                if (summary) {
+                    // Success! Update the memory object
+                    memory.text = summary;
+                    memory.alreadyPurrfect = true;
+                    allMemories[memoryIndex] = memory; // Update in our local cache
+                    saveMemories(); // Save changes to localStorage
+
+                    // Update the UI for this specific memory item
+                    const memoryItemElement = document.querySelector(`li[data-memory-id='${memoryId}']`);
+                    if (memoryItemElement) {
+                        const textDiv = memoryItemElement.querySelector('.memory-text');
+                         // Update displayed text - re-format for safety/consistency
+                        textDiv.innerHTML = formatMemoryText(summary);
+                         const timestampSpan = document.createElement('span'); // Re-add timestamp
+                         timestampSpan.className = 'memory-timestamp';
+                         timestampSpan.textContent = `Remembered: ${memory.timestamp || new Date(memory.id).toLocaleString()}`;
+                         textDiv.appendChild(timestampSpan);
+
+
+                        // Update button state
+                        buttonElement.textContent = 'Already Purrfect! ♡';
+                        buttonElement.classList.add('done');
+                        buttonElement.onclick = null; // Remove click listener
+                        const summarizeInfo = buttonElement.querySelector('.summarize-info');
+                        if(summarizeInfo) summarizeInfo.textContent = ''; // Remove API info text
+
+                        statusElement.style.display = 'none'; // Hide status message
+                        console.log(`Successfully summarized memory ID: ${memoryId}`);
+                    }
+                } else {
+                    // Handle cases where the API function returned null/empty (might indicate error handled within)
+                    throw new Error("Mika couldn't summarize this one, Master... Mrow!");
+                }
+
+            } catch (error) {
+                console.error(`Failed to summarize memory ID ${memoryId}:`, error);
+                statusElement.textContent = `Error: ${error.message || 'Failed to summarize!'}`;
+                 statusElement.className = 'memory-status memory-error';
+                statusElement.style.display = 'inline';
+                // Re-enable button on failure so Master can try again later
+                buttonElement.disabled = false;
+                buttonElement.textContent = 'Summarize ♡'; // Reset text
+                const summarizeInfo = buttonElement.querySelector('.summarize-info');
+                if(summarizeInfo) summarizeInfo.textContent = ' (Uses API)'; // Re-add API info
+            }
+        }
+
+
         // --- Initial Load ---
-        document.addEventListener('DOMContentLoaded', loadAndDisplayMemories);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUserInfo(); // Load API key and User Name first
+            loadAndDisplayMemories(); // Then load and display memories (buttons depend on user info)
+        });
 
     </script>
 
