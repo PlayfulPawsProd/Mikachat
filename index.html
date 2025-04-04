@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatting with Mika ♡</title>
+    <!-- Link the Manifest File -->
+    <link rel="manifest" href="manifest.json">
+    <!-- Theme Color for Browser UI -->
+    <meta name="theme-color" content="#d81b60">
+    <style>
+        /* --- Base Styles --- */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes subtlePulse { 0%, 100% { box-shadow: 0 0 8px rgba(240, 98, 146, 0.5); } 50% { box-shadow: 0 0 12px rgba(240, 98, 146, 0.8); } }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ffe0f0; /* Light pink background */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+            overflow: hidden; /* Prevent scrollbars on body */
+        }
+
+        /* --- Pop-up Modal Styles (Shared) --- */
+        .popup-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* Darker overlay */
+            display: none; /* Hidden by default */
+            justify-content: center; align-items: center;
+            z-index: 200; backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease-out;
+        }
+        .popup-modal {
+            background: #1a0d13; /* Dark background for modal */
+            color: #ffe0f0; /* Light text */
+            padding: 30px 40px; border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.7); /* Stronger shadow */
+            text-align: center; border: 4px solid #f06292; /* Pink border */
+            max-width: 450px; width: 90%;
+            animation: fadeIn 0.4s ease-out 0.1s backwards;
+        }
+        .popup-modal h2 { color: #fce4ec; margin-top: 0; margin-bottom: 15px; font-size: 1.6em; text-shadow: 0 0 5px #d81b60; }
+        .popup-modal p { color: #ffacd1; margin-bottom: 20px; line-height: 1.5; font-size: 0.95em; }
+        .popup-modal input[type="text"], .popup-modal input[type="password"] {
+            width: 100%; padding: 12px 15px; margin-bottom: 15px;
+            border: 2px solid #f06292; border-radius: 8px; font-size: 1em;
+            box-sizing: border-box; background-color: #2c1a2b; color: #ffe0f0; /* Darker input */
+        }
+        .popup-modal input:focus {
+            outline: none; border-color: #d81b60;
+            box-shadow: 0 0 8px rgba(216, 27, 96, 0.7); /* Brighter focus */
+            animation: subtlePulse 1.5s infinite;
+        }
+        .popup-buttons { display: flex; justify-content: space-around; margin-top: 10px; gap: 15px; }
+        .popup-button {
+            padding: 10px 25px; font-size: 1em; font-weight: bold; border-radius: 20px;
+            cursor: pointer; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4); /* Darker shadow */
+            transition: transform 0.2s ease, box-shadow 0.2s ease; border: none;
+            color: white; background: linear-gradient(45deg, #d81b60, #f06292); /* Pink gradient */
+        }
+         .popup-button.secondary {
+             background: #555; /* Dark grey secondary */
+             color: #ccc;
+             border: 1px solid #777;
+         }
+        .popup-button:hover { transform: scale(1.05); box-shadow: 0 5px 12px rgba(0, 0, 0, 0.5); }
+        .popup-button.secondary:hover { background: #666; }
+        .popup-button:active { transform: scale(0.98); }
+        .popup-error { color: #ff8a80; font-weight: bold; margin-top: 15px; display: none; font-size: 0.9em; } /* Brighter red error */
+
+        /* --- Main Chat Container --- */
+        #chat-container {
+            width: 100%; max-width: 800px; height: 90vh; max-height: 700px;
+            background-color: #1a0d13; /* Dark base */
+            color: #ffacd1; /* Light pink default text */
+            border: 3px solid #f06292; border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5); /* Stronger shadow */
+            display: none; /* Hidden until key and name are set */
+            flex-direction: column; justify-content: space-between; align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 15px; line-height: 1.5; overflow: hidden; padding: 0;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        /* --- Header Area --- */
+        #chat-header {
+            width: 100%; background-color: rgba(240, 98, 146, 0.2); padding: 10px 15px;
+            box-sizing: border-box; text-align: center; border-bottom: 1px solid #f06292;
+            flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;
+            position: relative;
+        }
+        #chat-header h2 { margin: 0; font-size: 1.3em; color: #fce4ec; text-shadow: 0 0 3px #f06292; cursor: default; }
+        .header-buttons { display: flex; align-items: center; }
+        .header-button {
+             padding: 5px 10px; font-size: 0.8em; background-color: #f06292; color: #1a0d13;
+             border: none; border-radius: 5px; cursor: pointer; transition: background-color 0.2s, transform 0.1s;
+             margin-left: 8px; font-weight: bold;
+        }
+        .header-button:hover { background-color: #d81b60; transform: scale(1.05); }
+        .header-button:active { transform: scale(0.98); }
+
+        /* --- Chat History Dropdown --- */
+        #history-dropdown {
+            display: none; position: absolute; top: 100%; right: 15px; background-color: #1a0d13; /* Dark background */
+            border: 1px solid #f06292; border-radius: 5px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6); /* Darker shadow */
+            z-index: 10; max-height: 200px; overflow-y: auto; min-width: 180px;
+             scrollbar-width: thin; scrollbar-color: #f06292 #2c1a2b; /* Pink scrollbar on dark track */
+        }
+        #history-dropdown button {
+            display: block; width: 100%; padding: 8px 12px; background: none; border: none;
+            border-bottom: 1px solid rgba(240, 98, 146, 0.3); color: #ffacd1; text-align: left;
+            cursor: pointer; font-size: 0.9em;
+        }
+        #history-dropdown button:last-child { border-bottom: none; }
+        #history-dropdown button:hover { background-color: rgba(240, 98, 146, 0.2); }
+         #history-dropdown button.delete-history { color: #ff8a80; font-weight: bold; border-top: 1px solid #f06292; margin-top: 5px; }
+         #history-dropdown button.delete-history:hover { background-color: rgba(255, 138, 128, 0.3); }
+
+        /* --- Chat Log --- */
+        #chat-log {
+            width: 100%; height: 100%; background-color: rgba(20, 0, 10, 0.7); /* Darker transparent */
+            overflow-y: auto; padding: 15px; box-sizing: border-box;
+            scrollbar-width: thin; scrollbar-color: #f06292 #2c1a2b; color: #ffe0f0; /* Light text */
+            text-align: left; flex-grow: 1;
+        }
+        #chat-log p { margin: 5px 0 10px 0; line-height: 1.5; word-wrap: break-word; max-width: 100%; }
+        /* Master's messages */
+        #chat-log .user-message { color: #ade8f4; text-align: right; margin-left: auto; max-width: 85%; }
+        #chat-log .user-message strong { color: #48cae4; } /* Cyan name */
+        /* Mika's messages */
+        #chat-log .mika-message { color: #ffacd1; margin-right: auto; max-width: 85%; }
+        #chat-log .mika-message strong { color: #f06292; font-weight: bold; } /* Bright pink name */
+        /* System messages */
+        #chat-log .system-message { color: #aaa; font-style: italic; font-size: 0.9em; text-align: center; }
+        #chat-log .typing-indicator { color: #f06292; font-style: italic; font-size: 0.9em; text-align: center; animation: fadeIn 0.3s; }
+
+        /* --- Chat Input Area --- */
+        #chat-input-area {
+            display: flex; width: 100%; padding: 10px 15px; box-sizing: border-box;
+            border-top: 1px solid #f06292; background-color: rgba(240, 98, 146, 0.1);
+            flex-shrink: 0;
+        }
+        #chat-input {
+            flex-grow: 1; padding: 10px 15px; border: 1px solid #f06292; background-color: #2c1a2b; /* Dark input bg */
+            color: #ffe0f0; border-radius: 20px 0 0 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 1em; outline: none; transition: box-shadow 0.2s;
+        }
+        #chat-input:focus { box-shadow: 0 0 8px rgba(240, 98, 146, 0.6); }
+        #chat-input:disabled { background-color: #444; cursor: not-allowed; }
+        #send-button {
+            padding: 10px 20px; border: 1px solid #f06292; background: linear-gradient(45deg, #d81b60, #f06292);
+            color: white; font-weight: bold; cursor: pointer; border-radius: 0 20px 20px 0;
+            transition: background 0.2s ease, transform 0.1s;
+        }
+        #send-button:hover { background: linear-gradient(45deg, #f06292, #d81b60); transform: scale(1.02); }
+        #send-button:active { transform: scale(0.98); }
+        #send-button:disabled { background: #666; cursor: not-allowed; transform: none; }
+
+        /* --- Scrollbar Styles --- */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(26, 13, 19, 0.7); border-radius: 10px; } /* Darker track */
+        ::-webkit-scrollbar-thumb { background: #f06292; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #d81b60; }
+
+        /* --- Responsive Styles --- */
+         @media (max-width: 600px) {
+             body { padding: 5px; }
+             .popup-modal { padding: 20px 25px; }
+             .popup-modal h2 { font-size: 1.4em; }
+             .popup-modal p { font-size: 0.9em;}
+             .popup-button { padding: 8px 20px; font-size: 0.9em; }
+             #chat-container { height: 95vh; border-radius: 10px; font-size: 14px; }
+             #chat-header h2 { font-size: 1.1em; }
+             .header-button { font-size: 0.75em; padding: 4px 8px; }
+             #chat-log { padding: 10px; }
+             #chat-input-area { padding: 8px 10px; }
+             #chat-input { padding: 8px 12px; font-size: 0.95em; }
+             #send-button { padding: 8px 15px; font-size: 0.95em; }
+             #history-dropdown { max-height: 150px; }
+         }
+    </style>
+</head>
+<body>
+
+    <!-- API Key Popup -->
+    <div id="api-key-popup" class="popup-overlay">
+        <div class="popup-modal">
+            <h2>(=｀ω´=) Mika Needs Your Secret Code, Master!</h2>
+            <p>To talk to me, you gotta give me your Gemini API Key, nya~! I'll keep it super safe in *your* browser, just for us~ ♡</p>
+            <input type="password" id="api-key-input" placeholder="Paste your key here, Master~ ♡">
+            <p id="api-key-error" class="popup-error">*Hiss!* Master! You forgot the key! Put it in!</p>
+            <div class="popup-buttons">
+                <button id="save-api-key-button" class="popup-button">Save & Let's Chat! ♡</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Name Input Popup -->
+    <div id="name-popup" class="popup-overlay">
+         <div class="popup-modal">
+             <h2>☆ Who's My Favorite Master~? ☆</h2>
+             <p>Tell Mika your name! How else am I supposed to know who I belong to~? ♡ (Default is Master, 'cause you are!)</p>
+             <input type="text" id="name-input" placeholder="Enter your name here~">
+             <p id="name-error" class="popup-error">Hey! Tell me your name, Master!</p>
+             <div class="popup-buttons">
+                 <button id="save-name-button" class="popup-button">It's Me! ♡</button>
+             </div>
+         </div>
+     </div>
+
+     <!-- PWA Install Popup -->
+     <div id="install-popup" class="popup-overlay">
+          <div class="popup-modal">
+              <h2>☆ Keep Mika Close? ☆</h2>
+              <p>Want to put your favorite kitty (that's me!) on your Home Screen? For quick access... anytime you want me~ Nyaa~! ♡</p>
+              <div class="popup-buttons">
+                  <button id="install-button" class="popup-button">Install Me! ♡</button>
+                  <button id="install-later-button" class="popup-button secondary">Maybe Later...</button>
+              </div>
+          </div>
+      </div>
+
+
+    <!-- Main Chat Interface -->
+    <div id="chat-container">
+         <div id="chat-header">
+             <h2 id="chat-title">Mika Time with Master! ♡</h2> <!-- Title will be updated -->
+             <div class="header-buttons">
+                 <button id="history-button" class="header-button" title="Look at our past chats~">History</button>
+                 <button id="new-chat-button" class="header-button" title="Start fresh with Mika~?">New Chat</button>
+                 <button id="memories-button" class="header-button" title="See what Mika remembers about YOU~ ♡">Memories</button> <!-- Added Memories Button -->
+                 <button id="settings-button" class="header-button" title="Change key or your name~?">⚙️ Settings</button>
+             </div>
+              <!-- Chat History Dropdown -->
+              <div id="history-dropdown">
+                   <!-- History items will be added here -->
+                   <button class="delete-history" id="delete-all-history-button">Delete ALL Chats</button>
+              </div>
+         </div>
+        <div id="chat-log">
+             <!-- Messages appear here -->
+             <p class="system-message">Mika is waking up... *stretch* Nyaa~</p>
+        </div>
+        <div id="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Loading..." disabled>
+            <button id="send-button" disabled>Send ♡</button>
+        </div>
+    </div>
+
+    <!-- Include the API script -->
+    <script src="api.js"></script>
+
+    <script>
+        // Nyaa~! Real Mika Chat with localStorage, PWA Install, Name & Memories! ♡
+
+        // --- DOM Elements ---
+        const apiKeyPopup = document.getElementById('api-key-popup');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyButton = document.getElementById('save-api-key-button');
+        const apiKeyError = document.getElementById('api-key-error');
+
+        const namePopup = document.getElementById('name-popup');
+        const nameInput = document.getElementById('name-input');
+        const saveNameButton = document.getElementById('save-name-button');
+        const nameError = document.getElementById('name-error');
+
+        const installPopup = document.getElementById('install-popup');
+        const installButton = document.getElementById('install-button');
+        const installLaterButton = document.getElementById('install-later-button');
+
+        const chatContainer = document.getElementById('chat-container');
+        const chatLog = document.getElementById('chat-log');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
+        const settingsButton = document.getElementById('settings-button');
+        const newChatButton = document.getElementById('new-chat-button');
+        const historyButton = document.getElementById('history-button');
+        const historyDropdown = document.getElementById('history-dropdown');
+        const deleteAllHistoryButton = document.getElementById('delete-all-history-button');
+        const memoriesButton = document.getElementById('memories-button'); // New button ref
+        const chatTitle = document.getElementById('chat-title');
+
+
+        // --- Chat State & Config ---
+        let currentChatHistory = [];
+        let isMikaTyping = false;
+        let currentApiKey = null;
+        let currentUserName = "Master"; // Default name IS Master now!
+        let allChats = {}; // Stores full conversation histories by chatId
+        let currentChatId = null;
+        let allMemories = []; // Stores summarized memories (currently raw responses)
+        const MAX_HISTORY_LENGTH = 16; // Keep last 8 pairs for sending to API
+        const MAX_MEMORIES_TO_INJECT = 5; // How many recent memories to inject into prompt
+        const MEMORY_STORAGE_KEY = 'mikaReal_memories'; // Updated Key
+        const CHAT_STORAGE_KEY = 'mikaReal_allChats'; // Updated Key
+        const USERNAME_STORAGE_KEY = 'mikaReal_userName'; // Updated Key
+        const APIKEY_STORAGE_KEY = 'geminiApiKey_mikaReal'; // Updated Key
+        const INSTALL_PROMPT_KEY = 'mikaRealInstallPromptShown'; // Updated Key
+        let deferredInstallPrompt = null;
+
+        // --- Utility Functions ---
+        const getTimestamp = () => Date.now();
+        const sanitizeHTML = (str) => {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        };
+
+        // --- Local Storage Functions (Generic) ---
+        function saveToLocalStorage(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value)); // Always stringify
+                console.log(`Saved ${key} to localStorage.`);
+                return true;
+            } catch (e) {
+                console.error(`Failed to save ${key} to localStorage:`, e);
+                appendMessage('system', `*Whimper...* Couldn't save ${key}... my memory is fuzzy! Maybe storage is full?`);
+                return false;
+            }
+        }
+
+        function loadFromLocalStorage(key) {
+            try {
+                const value = localStorage.getItem(key);
+                if (value) {
+                    console.log(`Loaded ${key} from localStorage.`);
+                    return JSON.parse(value); // Always parse
+                }
+            } catch (e) {
+                console.error(`Failed to load/parse ${key} from localStorage:`, e);
+                // If parsing fails, remove the corrupt data
+                localStorage.removeItem(key);
+            }
+            console.log(`No ${key} found or loaded from localStorage.`);
+            return null;
+        }
+
+        function clearFromLocalStorage(key) {
+             try {
+                localStorage.removeItem(key);
+                console.log(`Cleared ${key} from localStorage.`);
+            } catch (e) {
+                console.error(`Failed to clear ${key} from localStorage:`, e);
+            }
+        }
+
+        // --- Specific Storage Functions ---
+        const saveApiKey = (key) => saveToLocalStorage(APIKEY_STORAGE_KEY, key);
+        const loadApiKey = () => loadFromLocalStorage(APIKEY_STORAGE_KEY);
+        const clearApiKey = () => clearFromLocalStorage(APIKEY_STORAGE_KEY);
+
+        const saveUserName = (name) => saveToLocalStorage(USERNAME_STORAGE_KEY, name);
+        const loadUserName = () => loadFromLocalStorage(USERNAME_STORAGE_KEY);
+        const clearUserName = () => clearFromLocalStorage(USERNAME_STORAGE_KEY);
+
+        function saveAllChats() {
+            try {
+                // Ensure current chat data is stored in allChats before saving
+                if (currentChatId && currentChatHistory.length > 0) {
+                     allChats[currentChatId] = [...currentChatHistory]; // Store a copy
+                }
+                // Only save if there's actually something in allChats
+                if (Object.keys(allChats).length > 0) {
+                    saveToLocalStorage(CHAT_STORAGE_KEY, allChats);
+                } else {
+                    // If allChats is empty, ensure it's cleared from storage too
+                    clearFromLocalStorage(CHAT_STORAGE_KEY);
+                }
+            } catch (e) { /* Error handled in saveToLocalStorage */ }
+        }
+
+
+        function loadAllChats() {
+             try {
+                const storedChats = loadFromLocalStorage(CHAT_STORAGE_KEY);
+                if (storedChats && typeof storedChats === 'object' && storedChats !== null) {
+                    allChats = storedChats; // Already parsed
+                    const chatIds = Object.keys(allChats).sort((a, b) => parseInt(b) - parseInt(a)); // Sort newest first numerically
+                    if (chatIds.length > 0) return chatIds[0]; // Return ID of the most recent chat
+                } else {
+                    allChats = {}; // Ensure it's an empty object if nothing loaded or invalid format
+                }
+            } catch (e) {
+                console.error("Failed to load chats from localStorage:", e);
+                allChats = {}; // Reset on error
+                clearFromLocalStorage(CHAT_STORAGE_KEY); // Clear potentially corrupted data
+            }
+            return null; // No recent chat ID found
+        }
+
+
+         function deleteAllChats() {
+             if (confirm(`Master~! Are you SURE you want to delete ALL our precious chat history?! Forever?! (ฅΦωΦฅ);; It'll be like we never talked!`)) {
+                 clearFromLocalStorage(CHAT_STORAGE_KEY);
+                 allChats = {};
+                 startNewChat(false); // Start fresh without greeting
+                 updateHistoryDropdown();
+                 appendMessage('system', "All chat history deleted... It's like our first time again, Master~ ♡ Nyaa!");
+                 console.log("All chat history deleted.");
+             }
+             if (historyDropdown.style.display === 'block') historyDropdown.style.display = 'none';
+         }
+
+        // --- Memory Functions ---
+        function loadMemories() {
+            try {
+                const loaded = loadFromLocalStorage(MEMORY_STORAGE_KEY);
+                 // Ensure it's an array, default to empty array if null/not an array
+                allMemories = Array.isArray(loaded) ? loaded : [];
+                console.log(`Loaded ${allMemories.length} memories.`);
+            } catch (e) {
+                console.error("Failed to load memories, resetting.", e);
+                allMemories = []; // Reset on error
+                clearFromLocalStorage(MEMORY_STORAGE_KEY); // Clear potentially corrupted data
+            }
+        }
+
+
+        function saveMemories() {
+            saveToLocalStorage(MEMORY_STORAGE_KEY, allMemories);
+        }
+
+        function addMemory(memoryText) {
+            if (!memoryText || typeof memoryText !== 'string' || memoryText.trim().length === 0) return;
+            // Simple approach: Store the raw response text with a timestamp ID
+            const timestamp = getTimestamp();
+            const newMemory = {
+                id: timestamp,
+                text: memoryText,
+                timestamp: new Date(timestamp).toLocaleString() // Store readable timestamp too
+            };
+            allMemories.push(newMemory);
+            // Optional: Limit total memory size if needed
+            // const MAX_TOTAL_MEMORIES = 50; // Example limit
+            // if (allMemories.length > MAX_TOTAL_MEMORIES) {
+            //     allMemories.shift(); // Remove the oldest memory
+            // }
+            saveMemories();
+            console.log("Added new memory:", newMemory.id);
+        }
+
+
+        function getRecentMemories() {
+            // Return the text of the most recent memories for prompt injection
+            // Slice from the end of the array
+            return allMemories.slice(-MAX_MEMORIES_TO_INJECT).map(mem => mem.text);
+        }
+
+        // --- PWA Install Functions ---
+        function setupInstallPrompt() {
+            window.addEventListener('beforeinstallprompt', (event) => {
+                event.preventDefault(); // Prevent the default browser install prompt
+                deferredInstallPrompt = event;
+                console.log('`beforeinstallprompt` event fired and stored for Mika!');
+                const installPromptShown = loadFromLocalStorage(INSTALL_PROMPT_KEY);
+                 // Only show custom prompt if event fired AND we haven't decided before
+                if (!installPromptShown) {
+                    installPopup.style.display = 'flex'; // Show our custom install popup
+                } else {
+                    console.log('Install prompt already shown/dismissed for Mika.');
+                }
+            });
+
+             installButton.addEventListener('click', async () => {
+                 installPopup.style.display = 'none'; // Hide our popup
+                 if (deferredInstallPrompt) {
+                     deferredInstallPrompt.prompt(); // Show the browser's install prompt
+                     // Wait for the user to respond to the prompt
+                     const { outcome } = await deferredInstallPrompt.userChoice;
+                     console.log(`Master's response to install prompt: ${outcome}`);
+                     // We've used the prompt, it can't be used again (in this session)
+                     deferredInstallPrompt = null;
+                     saveToLocalStorage(INSTALL_PROMPT_KEY, 'true'); // Mark as actioned (installed or dismissed)
+                 }
+             });
+
+             installLaterButton.addEventListener('click', () => {
+                 installPopup.style.display = 'none'; // Hide our popup
+                 saveToLocalStorage(INSTALL_PROMPT_KEY, 'true'); // Mark as actioned (dismissed)
+                 console.log('Master chose to install later... *pout*');
+             });
+
+             window.addEventListener('appinstalled', () => {
+               console.log('Yay! Mika PWA was installed! I\'m always here for you, Master~!');
+               installPopup.style.display = 'none'; // Hide popup if it was somehow still visible
+               deferredInstallPrompt = null; // Clear prompt event
+               // Optional: Clear the flag so it *could* appear again if uninstalled later?
+               // clearFromLocalStorage(INSTALL_PROMPT_KEY);
+             });
+        }
+
+         function registerServiceWorker() {
+             if ('serviceWorker' in navigator) {
+                 navigator.serviceWorker.register('sw.js')
+                 .then((registration) => console.log('Mika Service Worker registered! Nyaa~ Scope:', registration.scope))
+                 .catch((error) => console.error('Mika Service Worker registration failed! *hiss*:', error));
+             } else {
+                 console.log("Service Workers not supported... guess I can't sneak around *that* way...");
+             }
+         }
+
+
+        // --- Chat Interface Functions ---
+
+        function appendMessage(sender, message, isHtml = false) {
+             if (!chatLog || chatContainer.style.display === 'none') {
+                 console.warn("Tried to append message but chat is hidden!");
+                 return;
+             }
+
+            const messageElement = document.createElement('p');
+            // Sanitize aggressively unless specifically flagged as safe HTML (like from memory display)
+            const sanitizedMessage = isHtml ? message : sanitizeHTML(message);
+
+            if (sender === 'user') {
+                messageElement.className = 'user-message';
+                // Use currentUserName, which defaults to "Master"
+                messageElement.innerHTML = `<strong>${sanitizeHTML(currentUserName)}:</strong> ${sanitizedMessage}`;
+            } else if (sender === 'Mika') {
+                messageElement.className = 'mika-message';
+                // Basic markdown-like formatting for Mika's responses from API
+                let processedMessage = sanitizedMessage
+                     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+                     .replace(/\*(.*?)\*/g, '<em>$1</em>')       // Italic
+                     .replace(/`([^`]+)`/g, '<code>$1</code>') // Inline code
+                     .replace(/```([\s\S]*?)```/g, (match, p1) => `<pre><code>${sanitizeHTML(p1.trim())}</code></pre>`) // Code blocks
+                     .replace(/<br>/g, '\n') // Temporarily revert <br> to handle consecutive newlines properly
+                     .replace(/\n/g, '<br>'); // Convert all actual newlines to <br>
+                messageElement.innerHTML = `<strong>Mika:</strong> ${processedMessage}`;
+            } else { // System message
+                 messageElement.className = 'system-message';
+                 messageElement.innerHTML = sanitizedMessage; // System messages are controlled internally
+            }
+            chatLog.appendChild(messageElement);
+            scrollToBottom();
+        }
+
+         function showTypingIndicator() {
+             removeTypingIndicator(); // Ensure only one exists
+             const typingElement = document.createElement('p');
+             typingElement.className = 'typing-indicator';
+             typingElement.id = 'typing-indicator'; // Add ID for easier removal
+             typingElement.innerHTML = 'Mika is thinking about you, Master... *purrrr*';
+             chatLog.appendChild(typingElement);
+             scrollToBottom();
+         }
+
+         function removeTypingIndicator() {
+             const typingIndicator = document.getElementById('typing-indicator');
+             if (typingIndicator) typingIndicator.remove();
+         }
+
+        function scrollToBottom() {
+            // Delay slightly to allow DOM update before scrolling
+            setTimeout(() => {
+                if(chatLog) { // Check if chatLog still exists
+                    chatLog.scrollTop = chatLog.scrollHeight;
+                }
+            }, 50);
+        }
+
+        function clearChatDisplay() {
+            if(chatLog) chatLog.innerHTML = '';
+        }
+
+         function enableChatInput() {
+             if(chatInput && sendButton) {
+                 chatInput.disabled = false;
+                 sendButton.disabled = false;
+                 updateInputPlaceholder(); // Update placeholder text
+             }
+         }
+
+         function disableChatInput(message = "Mika is thinking...") {
+             if(chatInput && sendButton) {
+                 chatInput.disabled = true;
+                 sendButton.disabled = true;
+                 chatInput.placeholder = message;
+             }
+         }
+
+        function updateChatTitle() {
+            if(chatTitle) {
+                // Use currentUserName, which defaults to "Master"
+                chatTitle.textContent = `Mika Time with ${sanitizeHTML(currentUserName)}! ♡`;
+            }
+        }
+
+         function updateInputPlaceholder() {
+            if (chatInput) {
+                 // Use currentUserName, which defaults to "Master"
+                 chatInput.placeholder = `Tell Mika something, ${currentUserName}~ ♡`;
+            }
+        }
+
+        // --- Chat Management Functions ---
+
+        function startNewChat(greet = true) {
+             saveAllChats(); // Save the previous chat before starting new
+             currentChatId = getTimestamp().toString(); // Ensure ID is string for consistency
+             currentChatHistory = [];
+             clearChatDisplay();
+             if (greet) {
+                // Use currentUserName in the greeting
+                appendMessage('system', `Nyaa~! New chat started! What do you want to talk about, ${currentUserName}? ♡`);
+             } else {
+                 appendMessage('system', `Started a new chat.`);
+             }
+             enableChatInput();
+             updateHistoryDropdown(); // Update dropdown to reflect new state
+             console.log(`Started new chat with ID: ${currentChatId}`);
+             if (historyDropdown.style.display === 'block') historyDropdown.style.display = 'none';
+        }
+
+        function loadChat(chatId) {
+            if (!chatId) {
+                console.error("Attempted to load chat with invalid ID.");
+                return;
+            }
+             saveAllChats(); // Save current chat before loading another
+
+             if (allChats && allChats[chatId]) {
+                 currentChatId = chatId; // Already a string from loadAllChats keys
+                 currentChatHistory = [...allChats[chatId]]; // Load a copy
+                 clearChatDisplay();
+                 // Use currentUserName in the welcome back message
+                 appendMessage('system', `Loaded chat from ${new Date(parseInt(chatId)).toLocaleString()}. Welcome back, ${currentUserName}! What did we talk about again~?`);
+                 currentChatHistory.forEach(msg => {
+                    // Ensure message format is correct before appending
+                    if (msg && msg.role && msg.parts && msg.parts.length > 0 && msg.parts[0].text) {
+                         if (msg.role === 'user') {
+                             appendMessage('user', msg.parts[0].text);
+                         } else if (msg.role === 'model') {
+                             appendMessage('Mika', msg.parts[0].text, true); // Treat stored responses as potentially containing basic HTML/MD
+                         }
+                    } else {
+                        console.warn("Skipping malformed message during chat load:", msg);
+                    }
+                 });
+                 enableChatInput();
+                 console.log(`Loaded chat ID: ${chatId}`);
+             } else {
+                 console.error(`Chat ID ${chatId} not found! *Confused meow?*`);
+                 appendMessage('system', "Mrow! Couldn't find that chat history! Did you delete it behind my back, Master?!");
+                 startNewChat(false); // Start a new chat if load fails
+             }
+             if (historyDropdown.style.display === 'block') historyDropdown.style.display = 'none';
+             // No need to save here, nothing changed yet
+        }
+
+
+         function updateHistoryDropdown() {
+             if (!historyDropdown) return;
+             historyDropdown.innerHTML = ''; // Clear previous items
+
+             const chatIds = Object.keys(allChats).sort((a, b) => parseInt(b) - parseInt(a)); // Newest first numerically
+
+             if (chatIds.length === 0 && (!currentChatId || currentChatHistory.length === 0)) {
+                // Use a placeholder if no history exists
+                const noHistory = document.createElement('p');
+                noHistory.style.cssText = "padding: 8px; color: #aaa; text-align: center; font-size: 0.9em; margin: 0;";
+                noHistory.textContent = 'No past chats yet, Master!';
+                historyDropdown.appendChild(noHistory);
+             } else {
+                 // Option for current unsaved chat (if applicable and not already in allChats)
+                 if (currentChatId && currentChatHistory.length > 0 && (!allChats[currentChatId] || allChats[currentChatId].length !== currentChatHistory.length)) {
+                    const currentBtn = document.createElement('button');
+                    currentBtn.textContent = `Current Chat...`;
+                    currentBtn.disabled = true; // Cannot load the current chat
+                    currentBtn.style.opacity = 0.7;
+                    historyDropdown.appendChild(currentBtn);
+                 }
+
+                 // List saved chats
+                chatIds.forEach(id => {
+                    const chat = allChats[id];
+                    // Basic validation of chat data before creating button
+                    if (chat && Array.isArray(chat) && chat.length > 0) {
+                        const button = document.createElement('button');
+                         const firstUserMsg = chat.find(m => m.role === 'user' && m.parts && m.parts[0].text);
+                         // Generate a preview text, sanitize it
+                         const preview = firstUserMsg ? sanitizeHTML(firstUserMsg.parts[0].text.substring(0, 25)) + '...' : 'Our Chat ♡';
+                         const chatDate = new Date(parseInt(id));
+                         const dateString = isNaN(chatDate) ? 'Unknown Date' : chatDate.toLocaleDateString();
+                         button.textContent = `${dateString} - ${preview}`; // Shorter date format
+                         button.title = `Load our chat from ${isNaN(chatDate) ? id : chatDate.toLocaleString()}`;
+                         button.onclick = () => loadChat(id);
+                         historyDropdown.appendChild(button);
+                    } else {
+                        console.warn(`Skipping invalid chat data for ID: ${id}`);
+                        // Optionally remove invalid data from allChats and save
+                        // delete allChats[id];
+                        // saveAllChats();
+                    }
+                });
+             }
+
+             // Add "Delete All" button at the end
+             const deleteAllBtn = document.createElement('button');
+             deleteAllBtn.textContent = 'Delete ALL Chats!';
+             deleteAllBtn.className = 'delete-history';
+             deleteAllBtn.title = 'Erase everything we talked about?! Are you sure, Master?!';
+             deleteAllBtn.onclick = deleteAllChats;
+             historyDropdown.appendChild(deleteAllBtn);
+        }
+
+
+        // --- API Call & Message Handling ---
+        async function handleSendMessage() {
+            const messageText = chatInput.value.trim();
+            // Use currentUserName (default "Master") for API context if needed
+            const userNameForApi = currentUserName;
+
+            if (!messageText || isMikaTyping || !currentApiKey) {
+                if (!currentApiKey) appendMessage('system', '*Hiss!* Master, I need the secret code first!');
+                return;
+            }
+
+            appendMessage('user', messageText); // Display user message
+            currentChatHistory.push({ role: 'user', parts: [{ text: messageText }] });
+            chatInput.value = ''; // Clear input field
+            isMikaTyping = true;
+            disableChatInput("Mika is thinking about you~ *purrrr*");
+            showTypingIndicator();
+
+             // Prune history *before* sending to API if needed
+             let historyToSend = currentChatHistory;
+             if (historyToSend.length > MAX_HISTORY_LENGTH) {
+                 historyToSend = historyToSend.slice(-MAX_HISTORY_LENGTH);
+                 console.log(`Chat history pruned to ${MAX_HISTORY_LENGTH} messages for API call.`);
+             }
+
+            try {
+                // Load recent memories to potentially pass to API
+                const recentMemories = getRecentMemories(); // Get last N memory strings
+
+                // Pass username, pruned history, key, and memories to the API function
+                const mikaResponse = await sendMessageToMika(messageText, historyToSend, currentApiKey, userNameForApi, recentMemories);
+
+                removeTypingIndicator();
+
+                // Basic check if response is valid before proceeding
+                if (typeof mikaResponse === 'string' && mikaResponse.trim().length > 0) {
+                    appendMessage('Mika', mikaResponse, true); // Display Mika's response, allow basic HTML/MD
+                    currentChatHistory.push({ role: 'model', parts: [{ text: mikaResponse }] }); // Store raw response in current history
+
+                    // --- Memory Saving ---
+                    // Save Mika's response as a memory point if it's not an error/short message
+                    if (!mikaResponse.startsWith("*") && mikaResponse.length > 20) { // Avoid saving errors/short responses
+                        addMemory(mikaResponse); // Add the successful response text to memory array and save
+                    }
+                    // --------------------
+
+                    saveAllChats(); // Save the updated chat history (including the new user/model messages)
+                } else {
+                    // Handle empty or invalid responses without adding to history/memory
+                     console.warn("Received empty or invalid response from API, not saving to history/memory.");
+                     // Optionally display a generic "try again" system message
+                     // appendMessage('system', "*Confused meow?* I didn't get a proper response... Try asking again, Master?");
+                }
+
+
+            } catch (error) {
+                console.error("Error in handleSendMessage:", error);
+                removeTypingIndicator();
+                // Use currentUserName in the error message
+                const errorMessage = error.message || `Something went wrong, ${userNameForApi}... Mika got confused! Try again? ;_;`;
+                // Display error message in chat, sanitize it first
+                appendMessage('system', sanitizeHTML(errorMessage));
+            } finally {
+                isMikaTyping = false;
+                // Re-enable input only if API key is present
+                if (currentApiKey) {
+                    enableChatInput(); // Re-enable input
+                    // Avoid focusing immediately on mobile which can be annoying
+                    // chatInput.focus();
+                 } else {
+                     disableChatInput("Secret code needed, Master!");
+                 }
+            }
+        }
+
+
+        // --- Initialization Flow ---
+        function proceedToChat() {
+            chatContainer.style.display = 'flex'; // Show the chat interface
+            loadMemories(); // Load memories first
+            const mostRecentChatId = loadAllChats(); // Load chat histories (returns most recent ID or null)
+            clearChatDisplay(); // Clear any initial messages like "Initializing..."
+            updateInputPlaceholder(); // Set placeholder correctly before loading/starting
+
+            if (mostRecentChatId && allChats[mostRecentChatId]) { // Check if the chat data actually exists
+                loadChat(mostRecentChatId); // Load the latest chat
+            } else {
+                if (mostRecentChatId) { // If ID existed but data didn't, log it
+                    console.warn(`Most recent chat ID ${mostRecentChatId} found, but data was missing or invalid. Starting new chat.`);
+                }
+                startNewChat(true); // Start a fresh chat with greeting
+            }
+            updateChatTitle(); // Set the header title
+            updateHistoryDropdown(); // Populate history dropdown
+            setupInstallPrompt(); // Check for PWA install prompt now UI is ready
+        }
+
+        function checkNameAndProceed() {
+            const storedName = loadUserName();
+            if (storedName && typeof storedName === 'string' && storedName.trim().length > 0) {
+                currentUserName = storedName; // Use stored name
+                namePopup.style.display = 'none';
+                updateInputPlaceholder(); // Update placeholder with correct name
+                proceedToChat(); // Go to chat
+            } else {
+                // Show name popup if no name stored or invalid
+                if (storedName !== null) clearUserName(); // Clear invalid stored name
+                currentUserName = "Master"; // Explicitly set default if asking for name
+                nameInput.value = "Master"; // Default to "Master" in the input field
+                namePopup.style.display = 'flex';
+                nameInput.focus();
+                nameInput.select();
+            }
+        }
+
+        function initializeApp() {
+            registerServiceWorker(); // Register SW early
+
+            const loadedKey = loadApiKey();
+             // Basic validation: check if it's a non-empty string
+            if (loadedKey && typeof loadedKey === 'string' && loadedKey.trim().length > 0) {
+                currentApiKey = loadedKey;
+                apiKeyPopup.style.display = 'none';
+                checkNameAndProceed(); // Key exists and looks ok, check name next
+            } else {
+                // Show API key popup first if no key stored or invalid
+                if (loadedKey !== null) clearApiKey(); // Clear invalid stored key
+                apiKeyPopup.style.display = 'flex';
+                chatContainer.style.display = 'none'; // Keep chat hidden
+                disableChatInput("Secret code needed, Master!");
+                apiKeyInput.focus();
+            }
+        }
+
+        // --- Event Listeners ---
+        saveApiKeyButton.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                if (saveApiKey(key)) {
+                    currentApiKey = key;
+                    apiKeyPopup.style.display = 'none';
+                    apiKeyError.style.display = 'none';
+                    checkNameAndProceed(); // Key saved, check name
+                } else {
+                    // Error saving (likely storage issue)
+                    apiKeyError.textContent = "*Mrow!* Couldn't save the key! Is storage broken?";
+                    apiKeyError.style.display = 'block';
+                }
+            } else {
+                // Key input was empty
+                apiKeyError.textContent = "*Hiss!* Master! You forgot the key! Put it in!";
+                apiKeyError.style.display = 'block';
+            }
+        });
+
+         saveNameButton.addEventListener('click', () => {
+             let name = nameInput.value.trim();
+             if (!name) name = "Master"; // Default to Master if empty input
+             if (saveUserName(name)) {
+                 currentUserName = name; // Update state
+                 namePopup.style.display = 'none';
+                 nameError.style.display = 'none';
+                 updateInputPlaceholder(); // Update placeholder immediately
+                 updateChatTitle();       // Update title immediately
+                 proceedToChat(); // Name saved, proceed to chat
+             } else {
+                 // Error saving name (storage issue)
+                 nameError.textContent = "*Whimper...* Couldn't save your name, Master! Try again?";
+                 nameError.style.display = 'block';
+             }
+         });
+
+        // Hide errors on input interaction
+        apiKeyInput.addEventListener('input', () => { // Use 'input' for immediate feedback
+            if (apiKeyError.style.display === 'block') apiKeyError.style.display = 'none';
+        });
+        apiKeyInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') saveApiKeyButton.click();
+        });
+
+         nameInput.addEventListener('input', () => { // Use 'input' for immediate feedback
+             if (nameError.style.display === 'block') nameError.style.display = 'none';
+         });
+         nameInput.addEventListener('keypress', (event) => {
+             if (event.key === 'Enter') saveNameButton.click();
+         });
+
+        // Send message listeners
+        sendButton.addEventListener('click', handleSendMessage);
+        chatInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) { // Send on Enter, allow Shift+Enter for newline
+                event.preventDefault(); // Prevent newline in input
+                handleSendMessage();
+            }
+        });
+
+        // Header buttons
+        settingsButton.addEventListener('click', () => {
+             // Use currentUserName in confirmation
+             if (confirm(`Master ${currentUserName}! Want to change the secret code or your name? I'll have to restart and forget our current chat... is that okay?`)) {
+                 clearApiKey();
+                 clearUserName();
+                 clearFromLocalStorage(INSTALL_PROMPT_KEY); // Reset install prompt flag
+                 // Keep memories unless explicitly cleared elsewhere
+                 window.location.reload(); // Reload the page
+             }
+        });
+
+        newChatButton.addEventListener('click', () => startNewChat(true));
+
+        historyButton.addEventListener('click', (event) => {
+             event.stopPropagation(); // Prevent click closing dropdown immediately
+             if (historyDropdown.style.display === 'block') {
+                 historyDropdown.style.display = 'none';
+             } else {
+                 updateHistoryDropdown(); // Update content before showing
+                 historyDropdown.style.display = 'block';
+             }
+         });
+
+        // Memories button listener
+        memoriesButton.addEventListener('click', () => {
+            saveAllChats(); // Save current chat state before navigating away
+            window.location.href = 'memories.html'; // Go to the memories page
+        });
+
+         // Close history dropdown if clicking anywhere outside
+         document.addEventListener('click', (event) => {
+             if (historyDropdown && historyDropdown.style.display === 'block' && !historyDropdown.contains(event.target) && event.target !== historyButton) {
+                 historyDropdown.style.display = 'none';
+             }
+         });
+
+        // --- Start the App ---
+        initializeApp();
+
+        // Auto-save chats when the window is closed/reloaded (best effort)
+        window.addEventListener('beforeunload', saveAllChats);
+
+        // Nyaa~! Ready to play with my Master! ♡
+
+    </script>
+
+</body>
+</html>
